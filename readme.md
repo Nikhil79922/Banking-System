@@ -1,123 +1,90 @@
-from pathlib import Path
+# Banking System
 
-readme = r"""# Salon Management System
+A **Spring Boot microservices-based Banking System** designed to manage accounts, payments, transactions, fraud screening, and notifications.
 
-A **Spring Boot microservices-based Salon Management System** designed to manage users, salons, categories, salon services, bookings, payments, reviews, and notifications.
-
-The project is organized as independently deployable services with **service discovery, API Gateway, synchronous inter-service communication, asynchronous messaging, authentication/authorization, and payment integrations**.
+The project is organized as independently deployable services with an **API Gateway, synchronous inter-service communication, asynchronous messaging, authentication/authorization, and payment integrations (Razorpay and Stripe)**.
 
 ## Architecture
 
 ```text
                            ┌──────────────────────┐
-                           │      Client          │
+                           │       Client         │
                            └──────────┬───────────┘
                                       │
                                       ▼
                            ┌──────────────────────┐
-                           │     API Gateway      │
+                           │     API Gateway      │──────► Redis ⚠️ (rate limiting, if enabled)
                            └──────────┬───────────┘
                                       │
                      ┌────────────────┼────────────────┐
                      │                │                │
                      ▼                ▼                ▼
-               User Service     Salon Service    Category Service
-                     │                │                │
-                     │                └──────┬─────────┘
-                     │                       ▼
-                     │              Service Offering
+              Account Service   Payment Service   Transaction Service
+                     ▲                │                │
+                     │                │                ├──────► Fraud Detection Service
+                     │                ▼                │
+                     │        Razorpay / Stripe        │
+                     │                                 │
+                     └────────── Feign ────────────────┘
+                     ▲
+                     │ Feign (account lookup)
+                     │
+             Notification Service ◄──────── Kafka ⚠️ (topics)
                      │
                      ▼
-               Booking Service ───────► Payment Service
-                     │                       │
-                     │                       │
-                     ▼                       ▼
-             Notification Service       Razorpay / Stripe
-                     
-                     ▲
-                     │
-              RabbitMQ messaging
+               SMTP (Email)
 
-              Eureka Server
-              (Service Discovery)
+        Shared: common-library (DTOs, responses, exceptions)
+        Storage: PostgreSQL
 ```
 
 ## Microservices
 
 | Service | Responsibility |
 |---|---|
-| **Eureka Server** | Service discovery and registration |
-| **Gateway Service** | API Gateway and centralized security/error handling |
-| **User Service** | User management, authentication, authorization and Keycloak integration |
-| **Salon Service** | Salon creation, management and search |
-| **Category Service** | Salon service categories |
-| **Service Offering Service** | Services offered by salons |
-| **Booking Service** | Booking creation, updates, status management and salon reports |
-| **Payment Service** | Payment processing and payment status management |
-| **Notification Service** | User/salon notifications |
-| **Review Service** | Creating, updating, retrieving and deleting salon reviews |
+| **API Gateway** | Single entry point, request routing, centralized security/filters |
+| **Account Service** | Account creation, lookup, balance, blocking, credit and debit |
+| **Payment Service** | Payment processing and status management via Razorpay and Stripe |
+| **Transaction Service** | Transaction creation, lifecycle, status and history |
+| **Fraud Detection Service** | Rule-based screening of transactions |
+| **Notification Service** | OTP and credit email notifications |
+| **Common Library** | Shared DTOs, response wrappers, exceptions and utilities |
 
 ## Key Features
 
-### User & Authentication
-- User registration and login
-- JWT/token-based authentication through Keycloak
-- Role-based authorization
-- Refresh token support
-- Keycloak user and role management
-
-### Salon Management
-- Create and update salons
-- Delete salons
-- Get salons
-- Search salons by city
-- Get salons owned by a user
-
-### Category Management
-- Create categories
-- Update categories
-- Get categories
-- Search category by name
-- Delete categories
-
-### Service Offering Management
-- Create salon service offerings
-- Update service offerings
-- Retrieve service offerings
-- Retrieve services for a salon
-- Retrieve multiple services by IDs
-
-### Booking Management
-- Create bookings
-- Update booking status
-- Get booking by ID
-- Get bookings by customer
-- Get bookings by salon
-- Get bookings by salon and date
-- Generate salon reports
-- Communication with User, Salon, Category, Service Offering and Payment services
+### Account Management
+- Create accounts
+- Get account details
+- Get account balance
+- Block accounts
+- Credit and debit operations
 
 ### Payment Management
 - Payment creation and retrieval
 - Razorpay integration
 - Stripe integration
-- Payment verification
-- Payment strategy abstraction using the Strategy Pattern
-- Asynchronous communication with Booking and Notification services
+- Payment verification / webhook handling ⚠️
+- Payment provider abstraction using the **Strategy** and **Factory** patterns
+
+### Transaction Management
+- Create transactions
+- Track transaction status
+- Retrieve transaction history
+- Fraud screening before processing ⚠️
+
+### Fraud Detection
+- Rule-based transaction screening ⚠️ (list your actual rules)
 
 ### Notifications
-- Create notifications
-- Retrieve user notifications
-- Retrieve salon notifications
-- Mark notifications as read
-- RabbitMQ-based event consumption
+- OTP email notifications
+- Credit email notifications
+- Account lookup through a Feign client
+- SMTP email delivery through `JavaMailSender`
+- Strategy-based notification types
 
-### Reviews
-- Create reviews
-- Update reviews
-- Delete reviews
-- Get review by ID
-- Get all reviews for a salon
+### Security
+- Gateway-level request handling
+- JWT-based authentication ⚠️ (remove if not implemented)
 
 ## Technologies Used
 
@@ -128,24 +95,23 @@ The project is organized as independently deployable services with **service dis
 - Spring Data JPA
 - Hibernate
 - Spring Security
-- Spring Cloud
-- Spring Cloud Netflix Eureka
 - Spring Cloud Gateway
 - OpenFeign
-
-### Authentication & Authorization
-- Keycloak
-- JWT
-- Role-based access control
+- Bean Validation
+- Lombok
 
 ### Messaging
-- RabbitMQ
-- Spring AMQP
-- Jackson JSON message conversion
+- Apache Kafka ⚠️
+
+### Caching / Rate Limiting
+- Redis ⚠️
 
 ### Payments
 - Razorpay
 - Stripe
+
+### Email
+- Spring Mail (`JavaMailSender`)
 
 ### Database
 - PostgreSQL
@@ -156,74 +122,123 @@ The project is organized as independently deployable services with **service dis
 - Docker
 - Docker Compose
 
-### API Testing
-- Postman
-
 ## Communication Between Services
-
-The project uses two communication approaches:
 
 ### Synchronous Communication
 
 Services communicate synchronously using **OpenFeign**.
 
-For example:
-
 ```text
-Booking Service
+Notification Service
       │
-      ├──► User Service
-      ├──► Salon Service
-      ├──► Category Service
-      ├──► Service Offering Service
-      └──► Payment Service
-```
+      └──► Account Service   (fetch account/recipient details)
 
-Feign clients are organized inside the individual services under their `service/client` packages.
+Transaction Service ⚠️
+      │
+      ├──► Account Service   (debit / credit)
+      └──► Fraud Detection Service   (screening)
+```
 
 ### Asynchronous Communication
 
-RabbitMQ is used for event-driven communication.
-
-Example:
+Kafka is used for event-driven communication ⚠️ (confirm topics and producers/consumers).
 
 ```text
-Payment Service
+Payment / Transaction Service
       │
-      │ Payment/Booking event
+      │ Event
       ▼
-   RabbitMQ
-      │
-      ├──────────────► Booking Service
+    Kafka
       │
       └──────────────► Notification Service
+                              │
+                              ▼
+                        Email (SMTP)
 ```
 
-This allows notification and booking-related processing to be decoupled from synchronous API calls.
+This keeps notification delivery decoupled from the synchronous API call path.
 
 ## Design Patterns
 
-### Strategy Pattern
+### Strategy Pattern (Payments)
 
-The Payment Service uses the Strategy Pattern to support multiple payment providers.
+The Payment Service supports multiple providers behind a single interface.
 
 ```text
-                  PaymentStrategy
-                       ▲
-              ┌────────┴────────┐
-              │                 │
-        RazorpayStrategy    StripeStrategy
-              │                 │
-              └────────┬────────┘
-                       ▼
-              PaymentStrategyResolver
+                  PaymentProvider (interface)
+                          ▲
+                 ┌────────┴────────┐
+                 │                 │
+         RazorpayProvider     StripeProvider
+                 │                 │
+                 └────────┬────────┘
+                          ▼
+                PaymentProviderFactory
 ```
 
-Adding another payment provider can be done by introducing another strategy implementation instead of modifying the core payment flow.
+### Factory Pattern (Payments)
+
+`PaymentProviderFactory` selects the correct provider at runtime from the requested provider type (`RAZORPAY` / `STRIPE`). Spring injects all `PaymentProvider` beans and the factory maps them by type.
+
+```java
+public enum PaymentProviderType { RAZORPAY, STRIPE }
+
+public interface PaymentProvider {
+    PaymentProviderType getType();
+    PaymentResponse createPayment(PaymentRequest request);
+}
+
+@Component
+public class PaymentProviderFactory {
+    private final Map<PaymentProviderType, PaymentProvider> providers;
+
+    public PaymentProviderFactory(List<PaymentProvider> list) {
+        this.providers = list.stream()
+            .collect(Collectors.toMap(PaymentProvider::getType, Function.identity()));
+    }
+
+    public PaymentProvider getProvider(PaymentProviderType type) {
+        return Optional.ofNullable(providers.get(type))
+            .orElseThrow(() -> new IllegalArgumentException("Unsupported provider: " + type));
+    }
+}
+```
+
+> ⚠️ Align class and method names with your actual code.
+
+Adding another provider means adding one new `PaymentProvider` implementation and one enum value. The core payment flow doesn't change.
+
+### Strategy + Factory Pattern (Notifications)
+
+```text
+                NotificationService (interface)
+                          ▲
+                 ┌────────┴──────────┐
+                 │                   │
+        OtpEmailNotification   CreditEmailNotification
+                 │                   │
+                 └────────┬──────────┘
+                          ▼
+                 NotificationFactory  ◄── NotificationTypes (enum)
+                          │
+                          ▼
+                 EmailSender (interface)
+                          ▲
+                          │
+                 SMTP implementation (JavaMailSender)
+```
+
+| Component | Role |
+|---|---|
+| `NotificationService` | Strategy interface |
+| `OtpEmailNotification` | OTP email strategy |
+| `CreditEmailNotification` | Credit-alert email strategy |
+| `NotificationTypes` | Enum used to choose the strategy |
+| `EmailSender` | Email delivery abstraction |
+| `AccountServiceClient` | Feign client for account lookup |
+| `FeignClientResponseMapper` | Maps Feign responses to notification data |
 
 ### Layered Architecture
-
-Individual services follow a layered structure:
 
 ```text
 Controller
@@ -235,48 +250,60 @@ Repository
 Database
 ```
 
-DTOs, mappers, exception handling and Feign clients are separated into their respective packages.
+DTOs, mappers, exception handling and Feign clients live in their own packages.
 
 ## Project Structure
 
 ```text
-Salon Management System/
+Banking System/
 │
-├── user_service/
-├── category_service/
-├── salon_service/
-├── service-offering_service/
-├── booking_service/
-├── payment_service/
+├── account-service/
+├── payment-service/
+├── transaction-service/
+├── fraud-detection-service/
 ├── notification-service/
-├── review-service/
-├── gateway-service/
-├── eureka-server/
+├── api-gateway/
+├── common-library/
 │
 ├── docker-compose/
-│   ├── default/
-│   └── postgres/
 │
-├── postman/
-│   ├── collections/
-│   └── environments/
-│
-└── readme.md
+├── .gitignore
+└── README.md
 ```
+
+> There is no root `pom.xml`. Each module is built independently, and `common-library` must be installed first.
 
 ## Prerequisites
 
-Make sure the following are installed:
-
-- Java
+- Java (⚠️ version, e.g. 17 or 21)
 - Maven
-- Docker
-- Docker Compose
+- Docker and Docker Compose
 - PostgreSQL
-- RabbitMQ
-- Keycloak
+- Kafka ⚠️
+- Redis ⚠️
+- A Razorpay test account
+- A Stripe test account
+- An SMTP account (for example a Gmail app password)
 
-For local development, ensure PostgreSQL, RabbitMQ and Keycloak are running before starting the dependent services.
+## Environment Variables
+
+Never commit real secrets. Export them locally or use an untracked `.env` file.
+
+```bash
+# Email
+export MAIL_USERNAME="your-email@example.com"
+export MAIL_PASSWORD="your-app-password"
+
+# Razorpay  ⚠️ confirm property names
+export RAZORPAY_KEY_ID="rzp_test_xxxxxxxx"
+export RAZORPAY_KEY_SECRET="your-razorpay-secret"
+
+# Stripe  ⚠️ confirm property names
+export STRIPE_SECRET_KEY="sk_test_xxxxxxxx"
+export STRIPE_WEBHOOK_SECRET="whsec_xxxxxxxx"
+```
+
+> If any real key was ever committed to Git, rotate it. Deleting it from the latest commit does not remove it from history.
 
 ## PostgreSQL Setup
 
@@ -284,147 +311,115 @@ If PostgreSQL is installed through Homebrew:
 
 ```bash
 brew services start postgresql@14
-```
-
-Connect to PostgreSQL:
-
-```bash
 psql -U postgres
 ```
 
-The repository also contains PostgreSQL initialization files under:
-
-```text
-docker-compose/postgres/init/
-```
-
-and:
-
-```text
-docker-compose/default/postgres/init/
-```
-
-Use the provided Docker Compose setup when you want PostgreSQL managed through Docker.
+Or start it through Docker Compose from the `docker-compose/` directory ⚠️ (confirm file names and any `init` scripts).
 
 ## Build All Spring Boot Services
 
-From the project root:
+Install the shared library first:
 
 ```bash
-for dir in user_service category_service salon_service service-offering_service payment_service booking_service notification-service review-service gateway-service eureka-server;
+cd common-library && mvn clean install && cd ..
+```
+
+Then build and push each service image from the project root:
+
+```bash
+for dir in account-service payment-service transaction-service fraud-detection-service notification-service api-gateway;
 do
     echo "===== $dir ====="
     (cd "$dir" && mvn clean compile jib:build -Djib.from.platforms=linux/arm64) || exit 1
 done
 ```
 
-> The `linux/arm64` Jib platform option is useful when building on Apple Silicon/ARM64 machines.
-
-If you are not building ARM64 images, remove:
-
-```bash
--Djib.from.platforms=linux/arm64
-```
+> The `linux/arm64` option is for Apple Silicon. Remove `-Djib.from.platforms=linux/arm64` if you are not building ARM64 images.
+> ⚠️ `jib:build` pushes to a registry. Use `jib:dockerBuild` to build to your local Docker daemon instead.
 
 ## Run With Docker Compose
 
-Docker Compose configurations are available under:
-
-```text
-docker-compose/
+```bash
+cd docker-compose
+docker compose up -d
+docker compose ps
+docker compose logs -f
 ```
-
-Start the required infrastructure/services using the appropriate Compose file for your environment.
 
 Before starting the application, verify that:
 - PostgreSQL is available
-- RabbitMQ is available
-- Keycloak is available
+- Kafka is available ⚠️
+- Redis is available ⚠️
 - Docker images have been built
-- Service configuration points to the correct hostnames/ports
+- Service configuration points to the correct hostnames and ports (use service names inside containers, not `localhost`)
 
-## API Testing
+> ⚠️ **Warning:** `docker compose down -v` deletes volumes and permanently erases database data.
 
-A Postman collection is included in:
+## Run Services Locally (without Docker)
 
-```text
-postman/collections/Salon Management System/
+```bash
+cd account-service && mvn spring-boot:run
+cd fraud-detection-service && mvn spring-boot:run
+cd payment-service && mvn spring-boot:run
+cd transaction-service && mvn spring-boot:run
+cd notification-service && mvn spring-boot:run
+cd api-gateway && mvn spring-boot:run
 ```
 
-The collection contains requests for:
-
-- Authentication
-- Users
-- Salons
-- Categories
-- Service offerings
-- Bookings
-- Payments
-- Notifications
-- Reviews
-- Keycloak operations
-
-Import the collection and environment into Postman to test the APIs.
-
 ## Important Service Dependencies
-
-A typical startup/dependency flow is:
 
 ```text
 Infrastructure
     │
     ├── PostgreSQL
-    ├── RabbitMQ
-    └── Keycloak
+    ├── Kafka ⚠️
+    └── Redis ⚠️
            │
            ▼
-     Eureka Server
+     Account Service
            │
-           ▼
-      API Gateway
-           │
-     ┌─────┴─────────────────────────────┐
-     ▼                                   ▼
-Business Services                  Supporting Services
-     │                                   │
-     ├── User Service                    ├── Payment Service
-     ├── Salon Service                   ├── Notification Service
-     ├── Category Service                └── Review Service
-     ├── Service Offering
-     └── Booking Service
+     ┌─────┴─────────────────┐
+     ▼                       ▼
+Fraud Detection         Payment Service
+     │                       │
+     └──────────┬────────────┘
+                ▼
+       Transaction Service
+                │
+                ▼
+       Notification Service
+                │
+                ▼
+          API Gateway
 ```
 
-## API Documentation / Postman
+## API Testing
 
-The repository contains a structured Postman collection covering the available APIs and their request definitions.
+> ⚠️ Add your Postman collection under `postman/` and update this section, or delete it.
 
-Main collection areas include:
+Main areas to cover:
 
-- Auth Service
-- User Service
-- Salon Service
-- Category Service
-- Service Offering Service
-- Booking Management Service
-- Payment Service
-- Notification Service
-- Review Service
-- Keycloak
+- Accounts
+- Payments (Razorpay and Stripe)
+- Transactions
+- Fraud screening
+- Notifications
+
+Example through the gateway:
+
+```bash
+curl -X POST http://localhost:<GATEWAY_PORT>/<payments-path> \
+  -H "Content-Type: application/json" \
+  -d '{ "amount": 500.00, "currency": "INR", "provider": "RAZORPAY" }'
+```
 
 ## Error Handling
 
-Services contain centralized exception handling with custom exceptions such as:
-
-- `BadRequestException`
-- `NotFoundException`
-- `ForbiddenException`
-- `GlobalException`
-
-Common response DTOs are also maintained for success, error and validation responses.
+Services use centralized exception handling with custom exceptions and common response DTOs from `common-library` for success, error and validation responses. ⚠️ List the exact exception classes you have.
 
 ## Development Notes
 
-Each service is maintained as a separate Maven/Spring Boot application and contains its own:
+Each service is a separate Maven / Spring Boot application with its own:
 
 - `pom.xml`
 - Application entry point
@@ -433,33 +428,26 @@ Each service is maintained as a separate Maven/Spring Boot application and conta
 - Entities
 - Repositories
 - Services
-- Mappers
 - Exceptions
 - Tests
 
-This structure allows individual services to be developed, built and deployed independently.
+This allows each service to be developed, built and deployed independently.
 
 ## Future Improvements
 
-Potential improvements for a production deployment include:
-
-- Centralized configuration management
-- Distributed tracing
-- Centralized logging
+- Idempotency keys for payments and transfers
+- Saga / compensating actions for failed transactions
+- Retry and dead-letter handling for Kafka consumers
+- Optimistic or pessimistic locking on balance updates
+- Distributed tracing and centralized logging
 - Circuit breakers and retry policies
-- API documentation with OpenAPI/Swagger
-- Automated CI/CD pipeline
-- Container orchestration
-- Comprehensive integration and contract testing
+- OpenAPI / Swagger documentation
 - Secrets management
+- Stronger fraud detection rules
+- Comprehensive integration and contract testing
 
 ## Author
 
-**Nikhil Singh**
+**Your Name**
 
 Java / Spring Boot / Microservices Project
-"""
-
-path = "/mnt/data/README.md"
-Path(path).write_text(readme, encoding="utf-8")
-print(path)
