@@ -1,0 +1,15 @@
+$kind: http-request
+url: http://localhost:8080/api/v1/transactions/transfer
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "senderAccountNumber": "727264030149",
+      "receiverAccountNumber": "735653723213",
+      "amount": 500.00,
+      "description": "Monthly transfer"
+    }
+order: 1000

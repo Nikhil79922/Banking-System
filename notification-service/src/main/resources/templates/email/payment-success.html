@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Payment Successful</title></head>
+<body>
+<section>
+    <div th:replace="~{email/components :: hero('&#10003;', '#1e8e3e', '#eaf6ee', 'Payment successful', 'Thank you, payment received', '')}"></div>
+
+    <div th:replace="~{email/components :: intro('Your payment was completed successfully. Please keep this email as your payment receipt.')}"></div>
+
+    <div th:replace="~{email/components :: amount('Amount paid', ${currency + ' ' + amount}, '#1e8e3e')}"></div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td class="px" style="padding:20px 36px 0 36px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="background-color:#f6f8fb;border-radius:12px;">
+                    <tr>
+                        <td style="padding:6px 20px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr th:replace="~{email/components :: row('Payment ID', ${paymentId}, true, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Payment method', ${paymentMethod}, false, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Gateway reference', ${gatewayReference}, true, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Date &amp; time', ${sentAt}, false, true)}"></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div th:replace="~{email/components :: notice('#eaf6ee', '#1e8e3e', 'Need help with this payment?', 'Share the Payment ID above with our support team and we will look into it.')}"></div>
+
+    <div th:replace="~{email/components :: spacer}"></div>
+</section>
+</body>
+</html>

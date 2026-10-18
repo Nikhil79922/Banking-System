@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:8080/api/v1/transactions/7459e2da-8a9f-4c25-b300-bf19c7099ace
+method: GET
+order: 2000

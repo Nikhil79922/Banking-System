@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title th:replace="${title}">Notification</title>
+    <style>
+        /* Mobile tweaks (supported by Gmail, Apple Mail, Outlook.com). Everything else is inline. */
+        @media only screen and (max-width: 620px) {
+            .container { width: 100% !important; }
+            .px { padding-left: 20px !important; padding-right: 20px !important; }
+            .stack { display: block !important; width: 100% !important; text-align: left !important; }
+            .stack-gap { padding-top: 12px !important; }
+            .hide-mobile { display: none !important; }
+        }
+    </style>
+</head>
+<body th:with="brand=${bankName} ?: 'YourBank', legal=${bankLegalName} ?: 'YourBank Ltd.'"
+      style="margin:0;padding:0;width:100%;background-color:#e9edf3;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+
+<!-- Preheader: short preview text shown next to the subject in the inbox -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:#e9edf3;"
+     th:text="${preheader} ?: 'Important update about your account'">Important update about your account</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e9edf3;">
+    <tr>
+        <td align="center" style="padding:32px 12px;">
+
+            <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0"
+                   style="width:600px;max-width:600px;background-color:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #d8dee8;">
+
+                <!-- ============ COMMON HEADER ============ -->
+                <tr>
+                    <td class="px" style="background-color:#0a2540;padding:26px 36px 22px 36px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <!-- Monogram -->
+                                <td width="48" valign="middle" style="width:48px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td align="center" valign="middle" width="44" height="44"
+                                                style="width:44px;height:44px;border-radius:22px;background-color:#c9a227;color:#0a2540;font-size:22px;font-weight:bold;font-family:Georgia,'Times New Roman',serif;"
+                                                th:text="${#strings.substring(brand,0,1)}">Y</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <!-- Brand name -->
+                                <td valign="middle" style="padding-left:14px;">
+                                    <div style="color:#ffffff;font-size:22px;font-weight:600;letter-spacing:0.4px;line-height:26px;">
+                                        <span th:text="${brand}">YourBank</span><sup style="font-size:10px;color:#c9a227;vertical-align:super;">&trade;</sup>
+                                    </div>
+                                    <div style="color:#9fb3c8;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;line-height:16px;">
+                                        Trusted. Secure. Always.
+                                    </div>
+                                </td>
+                                <!-- Right-hand tag -->
+                                <td align="right" valign="middle" class="hide-mobile">
+                                    <span style="display:inline-block;border:1px solid #3b5a7a;border-radius:14px;padding:5px 12px;color:#c9a227;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
+                                        Account Alert
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <!-- Gold accent line -->
+                <tr>
+                    <td height="4" style="height:4px;line-height:4px;font-size:0;background-color:#c9a227;">&nbsp;</td>
+                </tr>
+
+                <!-- ============ PER-EMAIL CONTENT ============ -->
+                <tr>
+                    <td th:insert="${content}" style="padding:0;">Content goes here</td>
+                </tr>
+
+                <!-- ============ SUPPORT STRIP ============ -->
+                <tr>
+                    <td class="px" style="padding:0 36px 28px 36px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                               style="background-color:#f4f7fb;border:1px solid #e1e7f0;border-radius:8px;">
+                            <tr>
+                                <td class="stack px" width="50%" valign="top" style="padding:16px 20px;">
+                                    <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#7a8794;margin-bottom:4px;">Call us 24x7</div>
+                                    <a th:href="'tel:' + ${supportPhone}" th:text="${supportPhone}"
+                                       style="font-size:15px;font-weight:600;color:#0a2540;text-decoration:none;">1800-000-000</a>
+                                </td>
+                                <td class="stack stack-gap px" width="50%" valign="top" style="padding:16px 20px;">
+                                    <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#7a8794;margin-bottom:4px;">Write to us</div>
+                                    <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}"
+                                       style="font-size:15px;font-weight:600;color:#0a2540;text-decoration:none;">support@yourbank.com</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- ============ COMMON FOOTER ============ -->
+                <tr>
+                    <td class="px" style="background-color:#0a2540;padding:28px 36px;">
+
+                        <!-- Security notice -->
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                            <tr>
+                                <td width="34" valign="top">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td align="center" valign="middle" width="22" height="22"
+                                                style="width:22px;height:22px;border-radius:11px;background-color:#c9a227;color:#0a2540;font-size:13px;font-weight:bold;line-height:22px;">!</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="font-size:12px;line-height:19px;color:#c3d0de;">
+                                    <strong style="color:#ffffff;">Protect your account.</strong>
+                                    <span th:text="${brand}">YourBank</span> will never ask for your PIN, password, CVV or OTP
+                                    by phone, email or SMS. Never share your OTP with anyone.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Footer links -->
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;">
+                            <tr>
+                                <td style="font-size:12px;">
+                                    <a th:href="${websiteUrl} ?: '#'" style="color:#e4c04f;text-decoration:none;">Website</a>
+                                    <span style="color:#4d6a88;">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                                    <a th:href="${privacyUrl} ?: '#'" style="color:#e4c04f;text-decoration:none;">Privacy Policy</a>
+                                    <span style="color:#4d6a88;">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                                    <a th:href="${termsUrl} ?: '#'" style="color:#e4c04f;text-decoration:none;">Terms &amp; Conditions</a>
+                                    <span style="color:#4d6a88;">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                                    <a th:href="${securityUrl} ?: '#'" style="color:#e4c04f;text-decoration:none;">Security Centre</a>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div style="border-top:1px solid #1f3f5f;padding-top:16px;">
+                            <p style="margin:0 0 8px 0;font-size:11px;line-height:17px;color:#8fa4ba;">
+                                This is a system-generated email. Please do not reply to this message.
+                            </p>
+                            <p th:if="${bankAddress != null}" th:text="${bankAddress}"
+                               style="margin:0 0 8px 0;font-size:11px;line-height:17px;color:#8fa4ba;"></p>
+                            <p style="margin:0;font-size:11px;line-height:17px;color:#8fa4ba;">
+                                &copy; <span th:text="${year}">2026</span>
+                                <span th:text="${brand}">YourBank</span>&trade;. All rights reserved.
+                                <span th:text="${brand}">YourBank</span> and its logo are registered trademarks of
+                                <span th:text="${legal}">YourBank Ltd.</span>
+                            </p>
+                        </div>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+</body>
+</html>

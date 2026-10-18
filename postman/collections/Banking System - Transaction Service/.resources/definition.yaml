@@ -1,0 +1,6 @@
+$kind: collection
+description: Transaction Service APIs through API Gateway at localhost:8080
+variables:
+  transactionId: REPLACE_WITH_TRANSACTION_ID
+  accountNumber: "501639793348"
+  otp: "123456"

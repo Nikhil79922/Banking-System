@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Credit Alert</title></head>
+<body>
+<section>
+    <div th:replace="~{email/components :: hero('&#8595;', '#1e8e3e', '#eaf6ee', 'Credit alert', 'Money added to your account', ${'Account ' + accountNumber})}"></div>
+
+    <div th:replace="~{email/components :: intro('Good news! An amount has been credited to your account. Here are the details of this transaction.')}"></div>
+
+    <div th:replace="~{email/components :: amount('Amount credited', ${amount}, '#1e8e3e')}"></div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td class="px" style="padding:20px 36px 0 36px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="background-color:#f6f8fb;border-radius:12px;">
+                    <tr>
+                        <td style="padding:6px 20px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr th:replace="~{email/components :: row('Account', ${accountNumber}, true, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Transaction ID', ${transactionId}, true, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Date &amp; time', ${sentAt}, false, true)}"></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div th:replace="~{email/components :: notice('#eaf6ee', '#1e8e3e', 'Do not recognise this credit?', 'If you were not expecting this amount, please contact your bank.')}"></div>
+
+    <div th:replace="~{email/components :: spacer}"></div>
+</section>
+</body>
+</html>

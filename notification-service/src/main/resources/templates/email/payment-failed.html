@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Payment Failed</title></head>
+<body>
+<section>
+    <div th:replace="~{email/components :: hero('&#10005;', '#d93025', '#fdeeed', 'Payment failed', 'We could not complete your payment', '')}"></div>
+
+    <div th:replace="~{email/components :: intro('Your payment did not go through. Please check your payment details and try again.')}"></div>
+
+    <div th:replace="~{email/components :: amount('Payment amount', ${currency + ' ' + amount}, '#d93025')}"></div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td class="px" style="padding:20px 36px 0 36px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="background-color:#f6f8fb;border-radius:12px;">
+                    <tr>
+                        <td style="padding:6px 20px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr th:replace="~{email/components :: row('Payment ID', ${paymentId}, true, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Payment method', ${paymentMethod}, false, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Reason', ${reason}, false, false)}"></tr>
+                                <tr th:replace="~{email/components :: row('Date &amp; time', ${sentAt}, false, true)}"></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div th:replace="~{email/components :: notice('#fdeeed', '#d93025', 'Money deducted but payment failed?', 'Please contact us with the Payment ID above so we can look into it.')}"></div>
+
+    <div th:replace="~{email/components :: button('tel:' + ${supportPhone}, 'Contact support', '#0a2540')}"></div>
+
+    <div th:replace="~{email/components :: spacer}"></div>
+</section>
+</body>
+</html>

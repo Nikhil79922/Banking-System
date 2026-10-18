@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:8080/api/v1/accounts/501639793348/balance
+method: GET
+order: 3000
