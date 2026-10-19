@@ -3,7 +3,11 @@ package com.banking.account_service.messaging;
 import com.banking.account_service.service.AccountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
@@ -17,47 +21,92 @@ public class AccountEventConsumer {
 
     private final AccountService accountService;
 
-    /*
-    * Consume transaction.completed event from Kafka
-    *
-    * @params payload
-    * */
+    @RetryableTopic(
+            attempts = "4",
+            retryTopicSuffix = ".account-retry",
+            dltTopicSuffix = ".account-dlt"
+    )
     @KafkaListener(topics = "transaction.completed")
     public void consumeTransactionCompleted(
-            @Payload Map<String , Object> payload
-            ){
-        try{
-            String accountNumber = (String) payload.get("receiverAccountNumber");
-            BigDecimal balance = (BigDecimal) payload.get("balance");
+            @Payload Map<String, Object> payload) {
 
-            log.info("Received transaction completed of amount: {} for account number: {}", balance ,accountNumber);
+        String accountNumber =
+                String.valueOf(payload.get("receiverAccountNumber"));
 
-          accountService.creditBalance(accountNumber, balance);
-
-        }catch (Exception e){
-            log.error("Exception occurred while processing transaction completed event : {}" , e.getMessage());
+        Object rawBalance = payload.get("balance");
+        if (rawBalance == null) {
+            throw new IllegalArgumentException(
+                    "Missing balance in transaction.completed event"
+            );
         }
+
+        BigDecimal balance = new BigDecimal(rawBalance.toString());
+
+        log.info(
+                "Received transaction.completed: amount={}, account={}",
+                balance, mask(accountNumber)
+        );
+
+        accountService.creditBalance(accountNumber, balance);
+
+        log.info(
+                "Account credited successfully: account={}",
+                mask(accountNumber)
+        );
     }
 
-
-    /*
-     * Consume fraud.detected event from Kafka
-     * Block the flagged account.
-     * @params payload
-     * */
+    @RetryableTopic(
+            attempts = "4",
+            retryTopicSuffix = ".account-retry",
+            dltTopicSuffix = ".account-dlt"
+    )
     @KafkaListener(topics = "fraud.detected")
     public void consumeFraudDetected(
-            @Payload Map<String , Object> payload
-    ){
-        try{
-            String accountNumber = (String) payload.get("accountNumber");
-            log.info("Fraud detected for account number: {}", accountNumber);
+            @Payload Map<String, Object> payload) {
 
-            accountService.blockAccount(accountNumber);
+        String accountNumber = String.valueOf(payload.get("accountNumber"));
 
-        } catch (Exception e) {
-log.error("Exception occurred while blocking getting account number : {}" , e.getMessage());
+        log.info(
+                "Fraud detected for account={}",
+                mask(accountNumber)
+        );
+
+        accountService.blockAccount(accountNumber);
+
+        log.info(
+                "Account blocked successfully: account={}",
+                mask(accountNumber)
+        );
+    }
+
+    @DltHandler
+    public void handleDlt(
+            @Payload Map<String, Object> payload,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition) {
+
+        log.error(
+                "Account event moved to DLT: topic={}, partition={}, "
+                        + "offset={}, transactionId={}, account={}",
+                topic,
+                partition,
+                offset,
+                payload.get("transactionId"),
+                mask(String.valueOf(payload.get("accountNumber")))
+        );
+
+        // TODO: Persist the failed event and metadata.
+        // TODO: Alert the operations team.
+        // TODO: Add controlled replay after investigation.
+    }
+
+    private static String mask(String accountNumber) {
+        if (accountNumber == null || accountNumber.length() <= 4) {
+            return "****";
         }
 
+        return "****" +
+                accountNumber.substring(accountNumber.length() - 4);
     }
 }
